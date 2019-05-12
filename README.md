@@ -15,30 +15,31 @@ This is obviously a fairly tricky thing to do, and involves a few compromises.
 
 When the shares are distributed, they come with instructions along the lines of:
 
-```
-This is a piece of a secret code, that when combined with X others can be used to recover Lachlan's 1password Master Password in the event something has happened to him.
+> This is a piece of a secret code, that when combined with X others can be used to recover Lachlan's 1password Master Password in the event something has happened to him.
+>
+> You need to get in touch with at least X other people on this list:
+>
+> * Person 1 <blah@blah.com>
+> * Person 2 <blah@blah.com>
+> * Person 3 <blah@blah.com>
+>
+> You will also need the recovery kit that is located > in his desk at his primary residence.
+>
+> When you have enough secret code pieces and the recovery kit, visit this page:
+>
+> https://lox.github.io/pass-share/
+>
+> Enter your code pieces, and the encrypted passphrase from the paper you got from the desk. Press "recover".
+>
+> At this stage you have the passphrase and you can access Lachlan's 1password vault.
+>
+> Good luck!
 
-You need to get in touch with at least X other people on this list:
-
-* Person 1 <blah@blah.com>
-* Person 2 <blah@blah.com>
-* Person 3 <blah@blah.com>
-
-You will also need the recovery kit that is located in his desk at his primary residence.
-
-When you have enough secret code pieces and the recovery kit, visit this page:
-
-https://lox.github.io/pass-share/
-
-Enter your code pieces, and the encrypted passphrase from the paper you got from the desk. Press "recover".
-
-At this stage you have the passphrase and you can access Lachlan's 1password vault.
-
-Good luck!
-```
 
 ## Risks
 
+* Sarah is like "What?"
+* Nobody cares about my passwords
 * WebCrypto API breaks in future
 * Web page is inaccessible (Github pages)
 * Can't access encrypted passphrase at residence
