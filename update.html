@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Update Encrypted Passphrase</title>
+    <link rel="stylesheet" href="static/style.css">
+    <script type="text/javascript" src="static/js/qrcode.min.js"></script>
+  </head>
+  <body>
+    <main>
+      <h1>Update Encrypted Passphrase</h1>
+      <section class="box">
+        <div class="row">
+          <label for="secret">Passphrase to encrypt:</label>
+          <input type="text" id="secret" name="secret" size="80" value="The owl hoots at midnight">
+        </div>
+        <div class="row">
+          <label for="intermediate-key">Intermediate key:</label>
+          <input type="text" id="intermediate-key" name="intermediate-key" size="80" value="">
+        </div>
+        <div class="row">
+          <label for="recover-url">Recover URL:</label>
+          <input type="text" id="recover-url" name="recover-url" size="80">
+        </div>
+        <input class="generate-button" type="button" value="Generate">
+      </section>
+      <section class="result">
+      </section>
+      <section class="exported-key">
+      </section>
+    </main>
+  </body>
+  <script type="text/javascript">
+  function trimRight(s, charlist) {
+    return s.replace(new RegExp("[" + charlist + "]+$"), "");
+  }
+
+  function convertArrayBufferToBase64(arrayBuffer) {
+    var byteArray = new Uint8Array(arrayBuffer);
+    var byteString = '';
+    for(var i=0; i < byteArray.byteLength; i++) {
+        byteString += String.fromCharCode(byteArray[i]);
+    }
+    var b64 = window.btoa(byteString);
+    return trimRight(b64, "=");
+  }
+
+  function convertBase64ToArrayBuffer(base64) {
+    var binary_string =  window.atob(base64);
+    var len = binary_string.length;
+    var bytes = new Uint8Array( len );
+    for (var i = 0; i < len; i++)        {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes.buffer;
+  }
+
+  function convertArrayBufferToHex(buffer) {
+    return Array.prototype.map.call(new Uint8Array(buffer),
+      x => ('00' + x.toString(16)).slice(-2)).join('');
+  }
+
+  async function encryptPassphrase(config) {
+   // Import the raw key into a CryptoKey
+   let key = await window.crypto.subtle.importKey(
+      "raw",
+      convertBase64ToArrayBuffer(config.intermediateKey),
+      "AES-GCM",
+      true,
+      ["encrypt", "decrypt"]
+    );
+
+    console.log("key", key);
+
+    let encoder = new TextEncoder();
+    let encoded = encoder.encode(config.secret);
+
+    // Encrypt our secret with a new random IV
+    let vector = crypto.getRandomValues(new Uint8Array(8));
+    let encrypted = await window.crypto.subtle.encrypt(
+      {name: "AES-GCM", iv: vector},
+      key,
+      encoded,
+    );
+
+    // Combine key length, ciphertext and iv into a single array
+    var ciphertext = new Uint8Array(1 + encrypted.byteLength + vector.byteLength);
+    ciphertext.set(new Uint8Array([encrypted.byteLength]), 0);
+    ciphertext.set(new Uint8Array(encrypted), 1);
+    ciphertext.set(new Uint8Array(vector), 1 + encrypted.byteLength);
+
+    console.log("ciphertext", ciphertext);
+    console.log("encrypted", new Uint8Array(encrypted));
+    console.log("vector", new Uint8Array(vector));
+
+    return {
+      ciphertext: convertArrayBufferToBase64(ciphertext),
+     };
+  }
+
+  function outputResults(config) {
+    // reset the results section
+    let result = document.querySelector(".result")
+    while (result.hasChildNodes()) {
+      result.removeChild(result.firstChild);
+    }
+
+    url = config.recoverURL + "?c="+encodeURIComponent(config.ciphertext)
+
+    // Insert the ciphertext output
+    result.insertAdjacentHTML('beforeend',
+      '<section><h2>Encrypted Passphrase (AES-256)</h2>' +
+      '<p>Copy this string and QR code elsewhere, print them out and store them somewhere safe.</p>'+
+      '<div class="ciphertext"><a href="'+url+'">'+config.ciphertext+'</a></div>'+
+      '<div class="qrcode"></div>'+
+      '</section>');
+
+    // Generate a QR code
+    new QRCode(document.querySelector(".qrcode"), url);
+  }
+
+  document.querySelector("#recover-url").value = window.location.href
+    .replace("update.html", "index.html")
+
+  document
+    .querySelector(".generate-button")
+    .addEventListener("click", () => {
+      encryptPassphrase({
+        secret: document.querySelector("#secret").value,
+        intermediateKey: document.querySelector("#intermediate-key").value,
+      }).then((result) => {
+        outputResults({
+          ciphertext: result.ciphertext,
+          recoverURL: document.querySelector("#recover-url").value,
+        });
+      })
+    });
+  </script>
+</html>

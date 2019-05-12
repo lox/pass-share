@@ -10,13 +10,13 @@
     <main>
       <h1>Recover Passphrase</h1>
       <section class="combine box">
-        <div class="textarea">
-          <label for="shares">Enter a shares to combine, one per line:</label>
+        <div class="textarea row">
+          <label for="shares">Enter passphrase shares, one per line:</label>
           <textarea id="shares" name="shares"  cols="100%" rows="10"></textarea>
         </div>
-        <div class="textarea">
-          <label for="encrypted">Encrypted text from printout in desk:</label>
-          <textarea id="encrypted" name="encrypted"  cols="100%" rows="10"></textarea>
+        <div class="row">
+          <label for="encrypted">Encrypted text:</label>
+          <input type="text" id="encrypted" encrypted="secret" size="80"></input>
         </div>
         <input class="recover-button" type="button" value="Recover">
       </section>
