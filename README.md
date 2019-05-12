@@ -17,6 +17,8 @@ When the shares are distributed, they come with instructions along the lines of:
 
 > This is a piece of a secret code, that when combined with X others can be used to recover Lachlan's 1password Master Password in the event something has happened to him.
 >
+> Your code is: `801203c28043c4576a7fd43530cd66f4898a7b4e704833a32dadf13a83bbda343705d3fb5b1970d1160e33cc1ca01c3fd75`
+>
 > You need to get in touch with at least X other people on this list:
 >
 > * Person 1 <blah@blah.com>
