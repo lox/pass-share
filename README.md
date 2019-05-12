@@ -1,4 +1,4 @@
-# Share a Passphrase Securely with Shares
+# Pass share
 
 This tool is for setting up a way for others (family or those you mostly trust) to recover a master passphrase in the event you aren't able to due to death or illness. It's designed with 1password's master passphrase in mind
 
