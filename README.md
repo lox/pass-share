@@ -54,3 +54,9 @@ When the shares are distributed, they come with instructions along the lines of:
 * Web page is inaccessible (Github pages)
 * Can't access encrypted passphrase at residence
 * Family conspires against me 🤷🏼‍♂️
+
+## Todo
+
+* [ ] Less horrible design, with better words
+* [ ] Decide whether passphrase should be padded before intermediate encryption.
+* [ ] PDF Generator?
