@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Recover Passphrase</title>
+    <link rel="stylesheet" href="static/style.css">
+    <script type="text/javascript" src="static/js/secrets.min.js"></script>
+  </head>
+  <body>
+    <main>
+      <h1>Recover Passphrase</h1>
+      <section class="combine box">
+        <div class="textarea">
+          <label for="shares">Enter a shares to combine, one per line:</label>
+          <textarea id="shares" name="shares"  cols="100%" rows="10"></textarea>
+        </div>
+        <div class="textarea">
+          <label for="encrypted">Encrypted text from printout in desk:</label>
+          <textarea id="encrypted" name="encrypted"  cols="100%" rows="10"></textarea>
+        </div>
+        <input class="recover-button" type="button" value="Recover">
+      </section>
+      <section class="result">
+      </section>
+    </main>
+  </body>
+  <script type="text/javascript">
+  function convertBase64ToArrayBuffer(base64) {
+    var binary_string =  window.atob(base64);
+    var len = binary_string.length;
+    var bytes = new Uint8Array( len );
+    for (var i = 0; i < len; i++)        {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes.buffer;
+  }
+
+  async function recoverSecretFromShares(ciphertext, shares) {
+    // Combined shares are hex version of key
+    let combined = secrets.combine(shares);
+
+    // Convert hex output into an array buffer
+    let rawKey = new Uint8Array(combined.match(/[\da-f]{2}/gi).map(function (h) {
+      return parseInt(h, 16)
+    }))
+
+    // Import the raw key into a CryptoKey
+    let key = await window.crypto.subtle.importKey(
+      "raw",
+      rawKey,
+      "AES-GCM",
+      true,
+      ["encrypt", "decrypt"]
+    );
+
+    console.log("key", key);
+
+    // Ciphertext comes in as base64 encoded array buffer
+    let buf = new Uint8Array(convertBase64ToArrayBuffer(ciphertext));
+
+    console.log("ciphertext", buf);
+
+    // Split cipher buffer into [ keylength, ciphertext, iv ]
+    let keyLength = buf.slice(0, 1)[0];
+    let encrypted = buf.slice(1, keyLength+1);
+    let iv = buf.slice(1 + keyLength);
+
+    console.log("keyLength", keyLength);
+    console.log("encrypted", encrypted);
+    console.log("iv", iv);
+
+    let result = await window.crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: iv },
+      key,
+      encrypted
+    );
+
+    // Decode ArrayBuffer to string for display
+    return String.fromCharCode.apply(null, new Uint8Array(result));
+  }
+
+  // Grab the ciphertext from the query string if we can
+  var urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('c')) {
+    document.querySelector("#encrypted").value  = urlParams.get('c')
+  }
+
+  const recoverButton = document.querySelector(".recover-button");
+  recoverButton.addEventListener("click", () => {
+    let shares = document.querySelector("#shares").value.split(/\n/);
+    let ciphertext = document.querySelector("#encrypted").value;
+
+    recoverSecretFromShares(ciphertext, shares)
+      .then(function(secret) {
+        // Reset results output
+        let result = document.querySelector(".result")
+        while (result.hasChildNodes()) {
+          result.removeChild(result.firstChild);
+        }
+
+        result.insertAdjacentHTML('beforeend',
+            '<h2>Passphrase</h2><div><code>'+ secret + '</code></div>')
+      })
+  });
+  </script>
+</html>

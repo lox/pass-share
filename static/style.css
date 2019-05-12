@@ -1,0 +1,33 @@
+* {
+    box-sizing: border-box;
+}
+
+html,body {
+    font-family: sans-serif;
+    line-height: 1.2rem;
+}
+
+h1 {
+    color: green;
+    margin-left: .5rem;
+}
+
+input[type="button"] {
+    width: 5rem;
+}
+
+.textarea > label {
+  display: block;
+}
+
+.box {
+  box-shadow: -1px 2px 5px gray;
+  padding: .2rem .5rem;
+  margin-bottom: 2rem;
+  max-width: 800px;
+}
+
+.ciphertext {
+  font-size:  1.2em;
+  margin-bottom: 1em;
+}

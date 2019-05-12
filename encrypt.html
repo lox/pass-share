@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Encrypt</title>
+    <link rel="stylesheet" href="static/style.css">
+    <script type="text/javascript" src="static/js/secrets.min.js"></script>
+    <script type="text/javascript" src="static/js/qrcode.min.js"></script>
+  </head>
+  <body>
+    <main>
+      <h1>Encrypt</h1>
+      <section class="generate box">
+        <div class="row">
+          <label for="recover-url">Recover URL:</label>
+          <input type="text" id="recover-url" name="recover-url" value="file:///Users/lachlan/Projects/lox/pass-share/recover.html" size="80">
+        </div>
+        <div class="row">
+          <label for="secret">Secret:</label>
+          <input type="text" id="secret" name="secret" size="25" value="The owl hoots at midnight">
+        </div>
+        <div class="row">
+          <label for="shares">Shares:</label>
+          <input type="number" id="shares" name="shares" value="5">
+        </div>
+        <div class="row">
+          <label for="threshold">Threshold:</label>
+          <input type="number" id="threshold" name="threshold" value="3">
+        </div>
+        <input class="generate-button" type="button" value="Generate">
+      </section>
+      <section class="result">
+      </section>
+      <section class="exported-key">
+
+      </section>
+    </main>
+  </body>
+  <script type="text/javascript">
+  function trimRight(s, charlist) {
+    return s.replace(new RegExp("[" + charlist + "]+$"), "");
+  }
+
+  function convertArrayBufferToBase64(arrayBuffer) {
+    var byteArray = new Uint8Array(arrayBuffer);
+    var byteString = '';
+    for(var i=0; i < byteArray.byteLength; i++) {
+        byteString += String.fromCharCode(byteArray[i]);
+    }
+    var b64 = window.btoa(byteString);
+    return trimRight(b64, "=");
+  }
+
+  function convertArrayBufferToHex(buffer) {
+    return Array.prototype.map.call(new Uint8Array(buffer),
+      x => ('00' + x.toString(16)).slice(-2)).join('');
+  }
+
+  async function generateShares(config) {
+    let encoder = new TextEncoder();
+    let encoded = encoder.encode(config.secret);
+
+    // Generate a random key to use to encrypt the secret
+    let key = await window.crypto.subtle.generateKey(
+      { name: "AES-GCM", length: 256 },
+      true,
+      ["encrypt", "decrypt"]
+    );
+
+    // Encrypt our secret with a random IV
+    let vector = crypto.getRandomValues(new Uint8Array(8));
+    let encrypted = await window.crypto.subtle.encrypt(
+      {name: "AES-GCM", iv: vector},
+      key,
+      encoded,
+    );
+
+    const exported = await window.crypto.subtle.exportKey(
+      "raw",
+      key
+    );
+
+    keyHex = convertArrayBufferToHex(exported);
+    console.log("secret length", keyHex.length);
+
+    // Split secret into shares, padded to 128 bytes
+    let shares = secrets.share(
+      keyHex, config.shares, config.threshold, 128);
+
+    // Combine key length, ciphertext and iv into a single array
+    var ciphertext = new Uint8Array(1 + encrypted.byteLength + vector.byteLength);
+    ciphertext.set(new Uint8Array([encrypted.byteLength]), 0);
+    ciphertext.set(new Uint8Array(encrypted), 1);
+    ciphertext.set(new Uint8Array(vector), 1 + encrypted.byteLength);
+
+    console.log("ciphertext", ciphertext);
+    console.log("encrypted", new Uint8Array(encrypted));
+    console.log("vector", new Uint8Array(vector));
+
+    return { shares: shares, ciphertext: convertArrayBufferToBase64(ciphertext) };
+  }
+
+  function outputResults(config) {
+    // reset the results section
+    let result = document.querySelector(".result")
+    while (result.hasChildNodes()) {
+      result.removeChild(result.firstChild);
+    }
+
+    url = config.recoverURL + "?c="+encodeURIComponent(config.ciphertext)
+
+    // Insert the ciphertext output
+    result.insertAdjacentHTML('beforeend',
+      '<section><h2>Encrypted Passphrase</h2>' +
+      '<p>Print this out and store it somewhere safe (away from the shares below)</p>'+
+      '<div class="ciphertext"><a href="'+url+'">'+config.ciphertext+'</a></div>'+
+      '<div class="qrcode"></div>'+
+      '</section>');
+
+    // Generate a QR code
+    new QRCode(document.querySelector(".qrcode"), url);
+
+    // Insert the shares placeholder
+    result.insertAdjacentHTML('beforeend',
+      '<section>'+
+      '<h2>Secret Shares</h2>'+
+      '<p>Any '+config.threshold+' of these, plus the above ciphertext can reveal your secret</p>'+
+      '<ol></ol>'+
+      '</section>');
+
+    // append results into ordered list
+    for (let i=0; i<config.shares.length; i++) {
+      document.querySelector(".result ol").insertAdjacentHTML('beforeend',
+        '<li class="share">'+config.shares[i]+'</li>');
+    }
+  }
+
+  document
+    .querySelector(".generate-button")
+    .addEventListener("click", () => {
+      let threshold = parseInt(document.querySelector("#threshold").value, 10);
+      let shares = parseInt(document.querySelector("#shares").value, 10);
+
+      // Make magic happen
+      generateShares({
+        secret: document.querySelector("#secret").value,
+        shares: shares,
+        threshold: threshold,
+      }).then((result) => {
+        outputResults({
+          shares: result.shares,
+          ciphertext: result.ciphertext,
+          recoverURL: document.querySelector("#recover-url").value,
+          threshold: threshold,
+        });
+      })
+    });
+
+  // () => {
+
+  //   const key = crypto.subtle.generateKey(
+  //     { name: "AES-GCM", length: 256 },
+  //     true,
+  //     ["encrypt", "decrypt"]
+  //   ).then(function(result){
+
+  //   })
+
+  //   console.log(key);
+
+  //   // console.log(intermediateKey);
+
+  //   let secretVal = document.querySelector("#secret").value;
+
+  //   crypto.subtle.encrypt({name: "AES-CBC", iv: vector}, key,
+  //     convertStringToArrayBufferView(secretVal)).then(function(result){
+  //       console.log(result);
+  //     });
+
+  //   // reset results element
+  //   let result = document.querySelector(".result")
+  //   while (result.hasChildNodes()) {
+  //     result.removeChild(result.firstChild);
+  //   }
+
+  //   let sharesVal = document.querySelector("#shares").value;
+  //   let thresholdVal = document.querySelector("#threshold").value;
+
+  //   // console.log(sharesVal, thresholdVal);
+  //   let shares = secrets.share(secrets.str2hex(secretVal), parseInt(sharesVal, 10), parseInt(thresholdVal, 10));
+
+    // crypto.subtle.decrypt({name: "AES-CBC", iv: vector}, key, encrypted_data).then(function(result) {
+    //   console.log(result);
+    // });
+
+    // insert the placeholder
+    // result.insertAdjacentHTML('beforeend',
+      // '<section><h2>Ciphertext</h2>'+ciphertext+'</section>');
+
+    // insert the shares placeholder
+  //   result.insertAdjacentHTML('beforeend',
+  //     '<section><h2>Shares (At least '+thresholdVal+' required)</h2><ol></ol></section>');
+
+  //   // append results into ordered list
+  //   for (let i=0; i<shares.length; i++) {
+  //     document.querySelector(".result ol").insertAdjacentHTML('beforeend',
+  //       '<li class="share">'+shares[i]+'</li>');
+  //   }
+  // });
+  </script>
+</html>
